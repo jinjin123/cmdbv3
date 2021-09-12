@@ -198,30 +198,37 @@ class ResetPasswordHandler(BaseHandler):
 
         data = json.loads(self.request.body.decode("utf-8"))
         user_list = data.get('user_list', None)
+        new_password1 = data.get('new_password1', None)
+        new_password2 = data.get('new_password2', None)
 
+        if not check_password(new_password1):
+            return self.write(dict(code=-5, msg='密码复杂度必须为： 超过8位，包含数字，大小写字母 等'))
+        if new_password1 != new_password2:
+            return self.write(dict(code=-2, msg='新密码输入不一致'))
         if len(user_list) < 1:
             return self.write(dict(code=-2, msg='用户不能为空'))
 
-        redis_conn = cache_conn()
-        configs_init('all')
-        config_info = redis_conn.hgetall(const.APP_SETTINGS)
-        config_info = convert(config_info)
-        obj = SendMail(mail_host=config_info.get(const.EMAIL_HOST), mail_port=config_info.get(const.EMAIL_PORT),
-                       mail_user=config_info.get(const.EMAIL_HOST_USER),
-                       mail_password=config_info.get(const.EMAIL_HOST_PASSWORD),
-                       mail_ssl=True if config_info.get(const.EMAIL_USE_SSL) == '1' else False,
-                       mail_tls=True if config_info.get(const.EMAIL_USE_TLS) == '1' else False)
+        # redis_conn = cache_conn()
+        # configs_init('all')
+        # config_info = redis_conn.hgetall(const.APP_SETTINGS)
+        # config_info = convert(config_info)
+        # obj = SendMail(mail_host=config_info.get(const.EMAIL_HOST), mail_port=config_info.get(const.EMAIL_PORT),
+        #                mail_user=config_info.get(const.EMAIL_HOST_USER),
+        #                mail_password=config_info.get(const.EMAIL_HOST_PASSWORD),
+        #                mail_ssl=True if config_info.get(const.EMAIL_USE_SSL) == '1' else False,
+        #                mail_tls=True if config_info.get(const.EMAIL_USE_TLS) == '1' else False)
 
         with DBContext('w', None, True) as session:
             for user_id in user_list:
-                md5_password = shortuuid.uuid()
-                new_password = gen_md5(md5_password)
+                # md5_password = shortuuid.uuid()
+                # new_password = gen_md5(md5_password)
                 session.query(Users).filter(Users.user_id == user_id).update(
-                    {Users.password: new_password})
-                mail_to = session.query(Users.email).filter(Users.user_id == user_id).first()
+                    {Users.password: gen_md5(new_password1)})
+                # mail_to = session.query(Users.email).filter(Users.user_id == user_id).first()
 
-                obj.send_mail(mail_to[0], '修改密码', md5_password, subtype='plain')
-        return self.write(dict(code=0, msg='重置密码成功，新密码已经发送到邮箱'))
+                # obj.send_mail(mail_to[0], '修改密码', md5_password, subtype='plain')
+        # return self.write(dict(code=0, msg='重置密码成功，新密码已经发送到邮箱'))
+        return self.write(dict(code=0, msg='重置密码成功!'))
 
 
 class TokenHandler(BaseHandler):
