@@ -1,0 +1,3 @@
+[submodule "cmdb-fronted"]
+	path = cmdb-fronted
+	url = git@github.com:jinjin123/cmdb-fronted.git
